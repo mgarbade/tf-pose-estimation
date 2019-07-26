@@ -2,7 +2,8 @@ argparse
 dill
 fire
 matplotlib
-numba
+numba==0.43.1
+opencv-python==3.4.0.14
 psutil
 pycocotools
 requests

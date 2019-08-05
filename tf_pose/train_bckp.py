@@ -44,9 +44,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     modelpath = logpath = './models/train/'
-    
-    num_sample_val = args.batchsize
-    num_sample_train = args.batchsize
 
     if args.gpus <= 0:
         raise Exception('gpus <= 0')
@@ -76,8 +73,7 @@ if __name__ == '__main__':
     df_valid.reset_state()
     validation_cache = []
 
-    val_image = get_sample_images(args.input_width, args.input_height) # TODO: This returns a list of 12 items --> hardcoded
-    val_image = val_image[0:num_sample_val]
+    val_image = get_sample_images(args.input_width, args.input_height)
     logger.debug('tensorboard val image: %d' % len(val_image))
     logger.debug(q_inp)
     logger.debug(q_heat)
@@ -102,7 +98,6 @@ if __name__ == '__main__':
                 output_vectmap.append(vect)
                 output_heatmap.append(heat)
                 outputs.append(net.get_output())
-                print("Output-Name = " + net.get_output().name)
 
                 l1s, l2s = net.loss_l1_l2()
                 for idx, (l1, l2) in enumerate(zip(l1s, l2s)):
@@ -161,15 +156,15 @@ if __name__ == '__main__':
     valid_loss_ll = tf.placeholder(tf.float32, shape=[])
     valid_loss_ll_paf = tf.placeholder(tf.float32, shape=[])
     valid_loss_ll_heat = tf.placeholder(tf.float32, shape=[])
-    sample_train = tf.placeholder(tf.float32, shape=(num_sample_train, 640, 640, 3))
-    sample_valid = tf.placeholder(tf.float32, shape=(num_sample_val, 640, 640, 3))
-    train_img = tf.summary.image('training sample', sample_train, num_sample_train)
-    valid_img = tf.summary.image('validation sample', sample_valid, num_sample_val)
+    sample_train = tf.placeholder(tf.float32, shape=(4, 640, 640, 3))
+    sample_valid = tf.placeholder(tf.float32, shape=(12, 640, 640, 3))
+    train_img = tf.summary.image('training sample', sample_train, 4)
+    valid_img = tf.summary.image('validation sample', sample_valid, 12)
     valid_loss_t = tf.summary.scalar("loss_valid", valid_loss)
     valid_loss_ll_t = tf.summary.scalar("loss_valid_lastlayer", valid_loss_ll)
     merged_validate_op = tf.summary.merge([train_img, valid_img, valid_loss_t, valid_loss_ll_t])
 
-    saver = tf.train.Saver(max_to_keep=10)
+    saver = tf.train.Saver(max_to_keep=1000)
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
@@ -229,8 +224,7 @@ if __name__ == '__main__':
                     file_writer.add_summary(summary, curr_epoch)
                     last_log_epoch1 = curr_epoch
 
-            #if gs_num - last_gs_num2 >= 2000:
-            if gs_num - last_gs_num2 >= 3:
+            if gs_num - last_gs_num2 >= 2000:
                 # save weights
                 saver.save(sess, os.path.join(modelpath, args.tag, 'model_latest'), global_step=global_step)
 
@@ -259,11 +253,10 @@ if __name__ == '__main__':
                 logger.info('validation(%d) %s loss=%f, loss_ll=%f, loss_ll_paf=%f, loss_ll_heat=%f' % (total_cnt, args.tag, average_loss / total_cnt, average_loss_ll / total_cnt, average_loss_ll_paf / total_cnt, average_loss_ll_heat / total_cnt))
                 last_gs_num2 = gs_num
 
-                sample_image = [enqueuer.last_dp[0][i] for i in range(num_sample_train)]
-                #sample_image = [enqueuer.last_dp[0][0]]
+                sample_image = [enqueuer.last_dp[0][i] for i in range(4)]
                 outputMat = sess.run(
                     outputs,
-                    feed_dict={q_inp: np.array((sample_image) * max(1, (args.batchsize // 16)))}
+                    feed_dict={q_inp: np.array((sample_image + val_image) * max(1, (args.batchsize // 16)))}
                 )
                 pafMat, heatMat = outputMat[:, :, :, 19:], outputMat[:, :, :, :19]
 
@@ -274,16 +267,9 @@ if __name__ == '__main__':
                     test_result = test_result.reshape([640, 640, 3]).astype(float)
                     sample_results.append(test_result)
 
-
-                outputMat = sess.run(
-                    outputs,
-                    feed_dict={q_inp: np.array((val_image) * max(1, (args.batchsize // 16)))}
-                )
-                pafMat, heatMat = outputMat[:, :, :, 19:], outputMat[:, :, :, :19]
-
                 test_results = []
                 for i in range(len(val_image)):
-                    test_result = CocoPose.display_image(val_image[i], heatMat[i], pafMat[i], as_numpy=True)
+                    test_result = CocoPose.display_image(val_image[i], heatMat[len(sample_image) + i], pafMat[len(sample_image) + i], as_numpy=True)
                     test_result = cv2.resize(test_result, (640, 640))
                     test_result = test_result.reshape([640, 640, 3]).astype(float)
                     test_results.append(test_result)

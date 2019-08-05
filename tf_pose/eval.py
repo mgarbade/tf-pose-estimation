@@ -80,11 +80,11 @@ if __name__ == '__main__':
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
     w, h = model_wh(args.resize)
     if w == 0 or h == 0:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368))
+        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368))
     else:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
+        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
 
-    print('FLOPs: ', e.get_flops())
+    print('FLOPs: ', pose_estimator.get_flops())
 
     result = []
     tqdm_keys = tqdm(keys)
@@ -100,7 +100,7 @@ if __name__ == '__main__':
 
         # inference the image with the specified network
         t = time.time()
-        humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=args.resize_out_ratio)
+        humans = pose_estimator.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=args.resize_out_ratio)
         elapsed = time.time() - t
 
         scores = 0
@@ -124,15 +124,15 @@ if __name__ == '__main__':
             import matplotlib.pyplot as plt
             fig = plt.figure()
             a = fig.add_subplot(2, 3, 1)
-            plt.imshow(e.draw_humans(image, humans, True))
+            plt.imshow(pose_estimator.draw_humans(image, humans, True))
 
             a = fig.add_subplot(2, 3, 2)
             # plt.imshow(cv2.resize(image, (e.heatMat.shape[1], e.heatMat.shape[0])), alpha=0.5)
-            tmp = np.amax(e.heatMat[:, :, :-1], axis=2)
+            tmp = np.amax(pose_estimator.heatMat[:, :, :-1], axis=2)
             plt.imshow(tmp, cmap=plt.cm.gray, alpha=0.5)
             plt.colorbar()
 
-            tmp2 = e.pafMat.transpose((2, 0, 1))
+            tmp2 = pose_estimator.pafMat.transpose((2, 0, 1))
             tmp2_odd = np.amax(np.absolute(tmp2[::2, :, :]), axis=0)
             tmp2_even = np.amax(np.absolute(tmp2[1::2, :, :]), axis=0)
 

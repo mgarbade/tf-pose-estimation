@@ -92,17 +92,19 @@ if __name__ == '__main__':
     last_losses_l1 = []
     last_losses_l2 = []
     outputs = []
-    for gpu_id in range(args.gpus):
+    # for gpu_id in range(args.gpus):
+    for gpu_id in range(0):
         with tf.device(tf.DeviceSpec(device_type="GPU", device_index=gpu_id)):
             with tf.variable_scope(tf.get_variable_scope(), reuse=(gpu_id > 0)):
-                net, pretrain_path, last_layer = get_network(args.model, q_inp_split[gpu_id])
+                input_node = tf.placeholder(tf.float32, shape=(None, h, w, 3), name='image')
+                net, pretrain_path, last_layer = get_network(args.model, input_node, None, trainable=False)
+                #net, pretrain_path, last_layer = get_network(args.model, q_inp_split[gpu_id])
                 if args.checkpoint:
                     pretrain_path = args.checkpoint
                 vect, heat = net.loss_last()
                 output_vectmap.append(vect)
                 output_heatmap.append(heat)
                 outputs.append(net.get_output())
-                print("Output-Name = " + net.get_output().name)
 
                 l1s, l2s = net.loss_l1_l2()
                 for idx, (l1, l2) in enumerate(zip(l1s, l2s)):
@@ -113,7 +115,7 @@ if __name__ == '__main__':
                 last_losses_l1.append(loss_l1)
                 last_losses_l2.append(loss_l2)
 
-    outputs = tf.concat(outputs, axis=0)
+    #outputs = tf.concat(outputs, axis=0)
 
     with tf.device(tf.DeviceSpec(device_type="GPU")):
         # define loss
@@ -144,8 +146,8 @@ if __name__ == '__main__':
     optimizer = tf.train.AdamOptimizer(learning_rate, epsilon=1e-8)
     # optimizer = tf.train.MomentumOptimizer(learning_rate, momentum=0.8, use_locking=True, use_nesterov=True)
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    with tf.control_dependencies(update_ops):
-        train_op = optimizer.minimize(total_loss, global_step, colocate_gradients_with_ops=True)
+    # with tf.control_dependencies(update_ops):
+    #     train_op = optimizer.minimize(total_loss, global_step, colocate_gradients_with_ops=True)
     logger.info('define model-')
 
     # define summary
@@ -181,6 +183,8 @@ if __name__ == '__main__':
             # loader = tf.train.Saver(net.restorable_variables())
             # loader.restore(sess, tf.train.latest_checkpoint(args.checkpoint))
             saver.restore(sess, tf.train.latest_checkpoint(args.checkpoint))
+            tf.train.write_graph(sess.graph_def, './tmp', 'frozen_graph_text.pb', as_text=True)
+            tf.train.write_graph(sess.graph_def, './tmp', 'frozen_graph_binary.pb', as_text=False)
             logger.info('Restore from checkpoint...Done')
         elif pretrain_path:
             logger.info('Restore pretrained weights... %s' % pretrain_path)
@@ -229,8 +233,7 @@ if __name__ == '__main__':
                     file_writer.add_summary(summary, curr_epoch)
                     last_log_epoch1 = curr_epoch
 
-            #if gs_num - last_gs_num2 >= 2000:
-            if gs_num - last_gs_num2 >= 3:
+            if gs_num - last_gs_num2 >= 2000:
                 # save weights
                 saver.save(sess, os.path.join(modelpath, args.tag, 'model_latest'), global_step=global_step)
 
@@ -303,3 +306,4 @@ if __name__ == '__main__':
 
         saver.save(sess, os.path.join(modelpath, args.tag, 'model'), global_step=global_step)
     logger.info('optimization finished. %f' % (time.time() - time_started))
+

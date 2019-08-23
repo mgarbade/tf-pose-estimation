@@ -1,6 +1,5 @@
 import matplotlib as mpl
 mpl.use('Agg')      # training mode, no screen should be open. (It will block training loop)
-
 import argparse
 import logging
 import os
@@ -8,6 +7,7 @@ import time
 
 import cv2
 import numpy as np
+epsilon = np.finfo(np.float32).eps
 import tensorflow as tf
 from tqdm import tqdm
 
@@ -29,21 +29,30 @@ logger.addHandler(ch)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Training codes for Openpose using Tensorflow')
     parser.add_argument('--model', default='mobilenet_v2_1.4', help='model name')
-    parser.add_argument('--datapath', type=str, default='/data/public/rw/coco/annotations')
-    parser.add_argument('--imgpath', type=str, default='/data/public/rw/coco/')
+    parser.add_argument('--datapath', type=str, default='/home/garbade/datasets/coco/annotations/')
+    parser.add_argument('--imgpath', type=str, default='/home/garbade/datasets/coco/images/')
     parser.add_argument('--batchsize', type=int, default=64)
     parser.add_argument('--gpus', type=int, default=4)
     parser.add_argument('--max-epoch', type=int, default=600)
     parser.add_argument('--lr', type=str, default='0.001')
     parser.add_argument('--tag', type=str, default='test')
     parser.add_argument('--checkpoint', type=str, default='')
-
+    parser.add_argument('--debug', action='store_true', default=False) 
     parser.add_argument('--input-width', type=int, default=432)
     parser.add_argument('--input-height', type=int, default=368)
     parser.add_argument('--quant-delay', type=int, default=-1)
     args = parser.parse_args()
 
     modelpath = logpath = './models/train/'
+    
+    num_sample_val = args.batchsize
+    num_sample_train = args.batchsize
+    save_interval = 2000
+    if args.debug == True:
+      print("Debugging Mode: VERY HIGH MODEL SAVIN RATIO")
+      save_interval = 1
+    else:
+      print("No Debug Mode")
 
     if args.gpus <= 0:
         raise Exception('gpus <= 0')
@@ -73,7 +82,9 @@ if __name__ == '__main__':
     df_valid.reset_state()
     validation_cache = []
 
-    val_image = get_sample_images(args.input_width, args.input_height)
+    val_image = get_sample_images(args.input_width, args.input_height) # TODO: This returns a list of 12 items --> hardcoded
+    print("len(val_images): " + str(len(val_image)))
+    val_image = val_image[0:num_sample_val]
     logger.debug('tensorboard val image: %d' % len(val_image))
     logger.debug(q_inp)
     logger.debug(q_heat)
@@ -98,6 +109,7 @@ if __name__ == '__main__':
                 output_vectmap.append(vect)
                 output_heatmap.append(heat)
                 outputs.append(net.get_output())
+                print("Output-Name = " + net.get_output().name)
 
                 l1s, l2s = net.loss_l1_l2()
                 for idx, (l1, l2) in enumerate(zip(l1s, l2s)):
@@ -156,15 +168,15 @@ if __name__ == '__main__':
     valid_loss_ll = tf.placeholder(tf.float32, shape=[])
     valid_loss_ll_paf = tf.placeholder(tf.float32, shape=[])
     valid_loss_ll_heat = tf.placeholder(tf.float32, shape=[])
-    sample_train = tf.placeholder(tf.float32, shape=(4, 640, 640, 3))
-    sample_valid = tf.placeholder(tf.float32, shape=(12, 640, 640, 3))
-    train_img = tf.summary.image('training sample', sample_train, 4)
-    valid_img = tf.summary.image('validation sample', sample_valid, 12)
+    sample_train = tf.placeholder(tf.float32, shape=(num_sample_train, 640, 640, 3))
+    sample_valid = tf.placeholder(tf.float32, shape=(num_sample_val, 640, 640, 3))
+    train_img = tf.summary.image('training sample', sample_train, num_sample_train)
+    valid_img = tf.summary.image('validation sample', sample_valid, num_sample_val)
     valid_loss_t = tf.summary.scalar("loss_valid", valid_loss)
     valid_loss_ll_t = tf.summary.scalar("loss_valid_lastlayer", valid_loss_ll)
     merged_validate_op = tf.summary.merge([train_img, valid_img, valid_loss_t, valid_loss_ll_t])
 
-    saver = tf.train.Saver(max_to_keep=1000)
+    saver = tf.train.Saver(max_to_keep=10)
     config = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
     config.gpu_options.allow_growth = True
     with tf.Session(config=config) as sess:
@@ -224,39 +236,41 @@ if __name__ == '__main__':
                     file_writer.add_summary(summary, curr_epoch)
                     last_log_epoch1 = curr_epoch
 
-            if gs_num - last_gs_num2 >= 2000:
-                # save weights
-                saver.save(sess, os.path.join(modelpath, args.tag, 'model_latest'), global_step=global_step)
-
+            if gs_num - last_gs_num2 >= save_interval:
                 average_loss = average_loss_ll = average_loss_ll_paf = average_loss_ll_heat = 0
                 total_cnt = 0
 
-                if len(validation_cache) == 0:
-                    for images_test, heatmaps, vectmaps in tqdm(df_valid.get_data()):
-                        validation_cache.append((images_test, heatmaps, vectmaps))
-                    df_valid.reset_state()
-                    del df_valid
-                    df_valid = None
+                if args.debug == False:
+                    # save weights
+                    saver.save(sess, os.path.join(modelpath, args.tag, 'model_latest'), global_step=global_step)
 
-                # log of test accuracy
-                for images_test, heatmaps, vectmaps in validation_cache:
-                    lss, lss_ll, lss_ll_paf, lss_ll_heat, vectmap_sample, heatmap_sample = sess.run(
-                        [total_loss, total_loss_ll, total_loss_ll_paf, total_loss_ll_heat, output_vectmap, output_heatmap],
-                        feed_dict={q_inp: images_test, q_vect: vectmaps, q_heat: heatmaps}
-                    )
-                    average_loss += lss * len(images_test)
-                    average_loss_ll += lss_ll * len(images_test)
-                    average_loss_ll_paf += lss_ll_paf * len(images_test)
-                    average_loss_ll_heat += lss_ll_heat * len(images_test)
-                    total_cnt += len(images_test)
+                    if len(validation_cache) == 0:
+                        for images_test, heatmaps, vectmaps in tqdm(df_valid.get_data()):
+                            validation_cache.append((images_test, heatmaps, vectmaps))
+                        df_valid.reset_state()
+                        del df_valid
+                        df_valid = None
 
-                logger.info('validation(%d) %s loss=%f, loss_ll=%f, loss_ll_paf=%f, loss_ll_heat=%f' % (total_cnt, args.tag, average_loss / total_cnt, average_loss_ll / total_cnt, average_loss_ll_paf / total_cnt, average_loss_ll_heat / total_cnt))
-                last_gs_num2 = gs_num
+                    # log of test accuracy
+                    for images_test, heatmaps, vectmaps in validation_cache:
+                        lss, lss_ll, lss_ll_paf, lss_ll_heat, vectmap_sample, heatmap_sample = sess.run(
+                            [total_loss, total_loss_ll, total_loss_ll_paf, total_loss_ll_heat, output_vectmap, output_heatmap],
+                            feed_dict={q_inp: images_test, q_vect: vectmaps, q_heat: heatmaps}
+                        )
+                        average_loss += lss * len(images_test)
+                        average_loss_ll += lss_ll * len(images_test)
+                        average_loss_ll_paf += lss_ll_paf * len(images_test)
+                        average_loss_ll_heat += lss_ll_heat * len(images_test)
+                        total_cnt += len(images_test)
 
-                sample_image = [enqueuer.last_dp[0][i] for i in range(4)]
+                    logger.info('validation(%d) %s loss=%f, loss_ll=%f, loss_ll_paf=%f, loss_ll_heat=%f' % (total_cnt, args.tag, average_loss / total_cnt, average_loss_ll / total_cnt, average_loss_ll_paf / total_cnt, average_loss_ll_heat / total_cnt))
+                    last_gs_num2 = gs_num
+
+                sample_image = [enqueuer.last_dp[0][i] for i in range(num_sample_train)]
                 outputMat = sess.run(
                     outputs,
-                    feed_dict={q_inp: np.array((sample_image + val_image) * max(1, (args.batchsize // 16)))}
+                    # feed_dict={q_inp: np.array((sample_image) * max(1, (args.batchsize // 16)))}
+                    feed_dict={q_inp: np.array(sample_image)}
                 )
                 pafMat, heatMat = outputMat[:, :, :, 19:], outputMat[:, :, :, :19]
 
@@ -267,19 +281,26 @@ if __name__ == '__main__':
                     test_result = test_result.reshape([640, 640, 3]).astype(float)
                     sample_results.append(test_result)
 
+                outputMat = sess.run(
+                    outputs,
+                    # feed_dict={q_inp: np.array((val_image) * max(1, (args.batchsize // 16)))}
+                    feed_dict = {q_inp: np.array(val_image)}
+                )
+                pafMat, heatMat = outputMat[:, :, :, 19:], outputMat[:, :, :, :19]
+
                 test_results = []
                 for i in range(len(val_image)):
-                    test_result = CocoPose.display_image(val_image[i], heatMat[len(sample_image) + i], pafMat[len(sample_image) + i], as_numpy=True)
+                    test_result = CocoPose.display_image(val_image[i], heatMat[i], pafMat[i], as_numpy=True)
                     test_result = cv2.resize(test_result, (640, 640))
                     test_result = test_result.reshape([640, 640, 3]).astype(float)
                     test_results.append(test_result)
 
                 # save summary
                 summary = sess.run(merged_validate_op, feed_dict={
-                    valid_loss: average_loss / total_cnt,
-                    valid_loss_ll: average_loss_ll / total_cnt,
-                    valid_loss_ll_paf: average_loss_ll_paf / total_cnt,
-                    valid_loss_ll_heat: average_loss_ll_heat / total_cnt,
+                    valid_loss: average_loss / (total_cnt + epsilon),
+                    valid_loss_ll: average_loss_ll / (total_cnt + epsilon),
+                    valid_loss_ll_paf: average_loss_ll_paf / (total_cnt + epsilon),
+                    valid_loss_ll_heat: average_loss_ll_heat / (total_cnt + epsilon),
                     sample_valid: test_results,
                     sample_train: sample_results
                 })

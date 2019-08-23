@@ -29,7 +29,8 @@ from tensorpack.dataflow.base import RNGDataFlow, DataFlowTerminated
 
 from pycocotools.coco import COCO
 from pose_augment import pose_flip, pose_rotation, pose_to_img, pose_crop_random, \
-    pose_resize_shortestedge_random, pose_resize_shortestedge_fixed, pose_crop_center, pose_random_scale
+    pose_resize_shortestedge_random, pose_resize_shortestedge_fixed, pose_crop_center, \
+    pose_random_scale, normalize_features
 from numba import jit
 
 logging.getLogger("requests").setLevel(logging.WARNING)
@@ -139,6 +140,18 @@ class CocoMetadata:
         x1 = int(min(width, center_x + delta * sigma))
         y1 = int(min(height, center_y + delta * sigma))
 
+        ## fast - vectorize
+        # exp_factor = 1 / 2.0 / sigma / sigma
+        # arr_heatmap = heatmap[plane_idx, y0:y1 + 1, x0:x1 + 1]
+        # y_vec = (np.arange(y0, y1 + 1) - center_y) ** 2  # y1 included
+        # x_vec = (np.arange(x0, x1 + 1) - center_x) ** 2
+        # xv, yv = np.meshgrid(x_vec, y_vec)
+        # arr_sum = exp_factor * (xv + yv)
+        # arr_exp = np.exp(-arr_sum)
+        # arr_exp[arr_sum > th] = 0
+        # heatmap[plane_idx, y0:y1 + 1, x0:x1 + 1] = np.maximum(arr_heatmap, arr_exp)
+
+        # slow - loops
         for y in range(y0, y1):
             for x in range(x0, x1):
                 d = (x - center_x) ** 2 + (y - center_y) ** 2
@@ -369,12 +382,14 @@ def get_dataflow(path, is_train, img_path=None):
         #     ]), 0.7)
         # ]
         # ds = AugmentImageComponent(ds, augs)
+        # ds = MapData(ds, normalize_features)
         ds = PrefetchData(ds, 1000, multiprocessing.cpu_count() * 1)
     else:
         ds = MultiThreadMapData(ds, nr_thread=16, map_func=read_image_url, buffer_size=1000)
         ds = MapDataComponent(ds, pose_resize_shortestedge_fixed)
         ds = MapDataComponent(ds, pose_crop_center)
         ds = MapData(ds, pose_to_img)
+        # ds = MapData(ds, normalize_features)
         ds = PrefetchData(ds, 100, multiprocessing.cpu_count() // 4)
 
     return ds

@@ -1,0 +1,15 @@
+tqdm
+jinja2==2.10
+pyyaml==3.12
+sh==1.12.14
+filelock==3.0.0
+termcolor>=1.1
+tabulate>=0.7.7
+pyarrow>=0.9.0
+pyzmq>=16
+msgpack 
+msgpack_numpy 
+datetime 
+setproctitle 
+pillow 
+matplotlib

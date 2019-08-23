@@ -118,6 +118,13 @@ def pose_crop_center(meta):
     return pose_crop(meta, x, y, target_size[0], target_size[1])
 
 
+def normalize_features(meta):
+    print(meta.img.dtype)
+    meta.img = meta.img - 127.5
+    meta.img = meta.img / 127.5
+    return meta
+
+
 def pose_crop_random(meta):
     global _network_w, _network_h
     target_size = (_network_w, _network_h)
@@ -258,8 +265,20 @@ def _rotate_coord(shape, newxy, point, angle):
 
 def pose_to_img(meta_l):
     global _network_w, _network_h, _scale
+    img = meta_l[0].img
+    img.astype(np.float16)
+    img = img - 127.5
+    img = img / 127.5
+    # print(np.unique(img))
+
+    meta_l[0].img = img
     return [
-        meta_l[0].img.astype(np.float16),
+        meta_l[0].img,
         meta_l[0].get_heatmap(target_size=(_network_w // _scale, _network_h // _scale)),
         meta_l[0].get_vectormap(target_size=(_network_w // _scale, _network_h // _scale))
     ]
+    # return [
+    #     meta_l[0].img.astype(np.float16),
+    #     meta_l[0].get_heatmap(target_size=(_network_w // _scale, _network_h // _scale)),
+    #     meta_l[0].get_vectormap(target_size=(_network_w // _scale, _network_h // _scale))
+    # ]

@@ -140,7 +140,7 @@ class CocoMetadata:
         x1 = int(min(width, center_x + delta * sigma))
         y1 = int(min(height, center_y + delta * sigma))
 
-        ## fast - vectorize
+        ## fast - vectorize -> maybe not working with 'jit'?
         # exp_factor = 1 / 2.0 / sigma / sigma
         # arr_heatmap = heatmap[plane_idx, y0:y1 + 1, x0:x1 + 1]
         # y_vec = (np.arange(y0, y1 + 1) - center_y) ** 2  # y1 included
@@ -374,8 +374,8 @@ def get_dataflow(path, is_train, img_path=None):
         ds = MapDataComponent(ds, pose_rotation)
         ds = MapDataComponent(ds, pose_flip)
         ds = MapDataComponent(ds, pose_resize_shortestedge_random)
-        ds = MapDataComponent(ds, pose_crop_random)
-        ds = MapData(ds, pose_to_img)
+        ds = MapDataComponent(ds, pose_crop_random)  # TODO-MG: Choose center cropped BB here!
+        ds = MapData(ds, pose_to_img)  # TODO-MG: This is where vecmap and heatmap are created
         # augs = [
         #     imgaug.RandomApplyAug(imgaug.RandomChooseAug([
         #         imgaug.GaussianBlur(max_size=3)
@@ -388,7 +388,7 @@ def get_dataflow(path, is_train, img_path=None):
         ds = MultiThreadMapData(ds, nr_thread=16, map_func=read_image_url, buffer_size=1000)
         ds = MapDataComponent(ds, pose_resize_shortestedge_fixed)
         ds = MapDataComponent(ds, pose_crop_center)
-        ds = MapData(ds, pose_to_img)
+        ds = MapData(ds, pose_to_img)  # TODO-MG: This is where vecmap and heatmap are created
         # ds = MapData(ds, normalize_features)
         ds = PrefetchData(ds, 100, multiprocessing.cpu_count() // 4)
 

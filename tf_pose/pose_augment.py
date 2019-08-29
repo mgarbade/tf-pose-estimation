@@ -166,6 +166,14 @@ def pose_crop(meta, x, y, w, h):
             adjust_joint.append((new_x, new_y))
         adjust_joint_list.append(adjust_joint)
 
+    # TODO-MG: This is prob where everything but the most prominent / centered / biggest person should be chosen and the other persons ignored
+
+    # based on meta.joint_list
+    # -> check which person is more centered
+    # -> check which person is bigger (more prominent)
+    # -> suppress the lesser person
+    # also check if this function is called prior to put_vectormap and put_heatmap
+
     meta.joint_list = adjust_joint_list
     meta.width, meta.height = target_size
     meta.img = resized
@@ -267,9 +275,9 @@ def pose_to_img(meta_l):
     global _network_w, _network_h, _scale
     img = meta_l[0].img
     img.astype(np.float16)
-    img = img - 127.5
-    img = img / 127.5
-    # print(np.unique(img))
+    # img = img - 127.5 # TODO-MG: Before using input-normalization -> extend this to the 0-padding applied to the image (use 'SAME' as padding)
+    # img = img / 127.5
+
 
     meta_l[0].img = img
     return [

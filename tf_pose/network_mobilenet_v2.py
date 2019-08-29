@@ -8,9 +8,14 @@ from tf_pose.network_base import layer
 
 
 class Mobilenetv2Network(network_base.BaseNetwork):
-    def __init__(self, inputs, trainable=True, conv_width=1.0, conv_width2=1.0):
+    def __init__(self, inputs,
+                 trainable=True,
+                 conv_width=1.0,
+                 conv_width2=1.0,
+                 num_stages=7):
         self.conv_width = conv_width
         self.refine_width = conv_width2
+        self.num_stages = num_stages
         network_base.BaseNetwork.__init__(self, inputs, trainable)
 
     @layer
@@ -56,7 +61,7 @@ class Mobilenetv2Network(network_base.BaseNetwork):
              .separable_conv(1, 1, depth2(512), 1, name=prefix + '_L2_4')
              .separable_conv(1, 1, 19, 1, relu=False, name=prefix + '_L2_5'))
 
-            for stage_id in range(5):
+            for stage_id in range(self.num_stages):
                 prefix_prev = 'MConv_Stage%d' % (stage_id + 1)
                 prefix = 'MConv_Stage%d' % (stage_id + 2)
                 (self.feed(prefix_prev + '_L1_5',

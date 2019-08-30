@@ -41,6 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--input-width', type=int, default=432)
     parser.add_argument('--input-height', type=int, default=368)
     parser.add_argument('--quant-delay', type=int, default=-1)
+    parser.add_argument('--num-stages', type=int, default=7)
     args = parser.parse_args()
 
     modelpath = logpath = './models/train/'
@@ -102,7 +103,11 @@ if __name__ == '__main__':
     for gpu_id in range(args.gpus):
         with tf.device(tf.DeviceSpec(device_type="GPU", device_index=gpu_id)):
             with tf.variable_scope(tf.get_variable_scope(), reuse=(gpu_id > 0)):
-                net, pretrain_path, last_layer = get_network(args.model, q_inp_split[gpu_id])
+                net, pretrain_path, last_layer = get_network(args.model,
+                                                             q_inp_split[gpu_id],
+                                                             sess_for_load=None,
+                                                             trainable=True,
+                                                             num_stages=args.num_stages)
                 if args.checkpoint:
                     pretrain_path = args.checkpoint
                 vect, heat = net.loss_last()

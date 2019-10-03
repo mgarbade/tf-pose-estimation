@@ -81,18 +81,18 @@ def get_network(type, placeholder_input, sess_for_load=None, trainable=True, num
         pretrain_path = 'pretrained/mobilenet_v2_0.5_224/mobilenet_v2_0.5_224.ckpt'
         last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
 
-    # elif type in ['cmu', 'openpose']:
-    #     net = CmuNetwork({'image': placeholder_input}, trainable=trainable)
-    #     pretrain_path = 'numpy/openpose_coco.npy'
-    #     last_layer = 'Mconv7_stage6_L{aux}'
-    # elif type in ['cmu_quantize', 'openpose_quantize']:
-    #     net = CmuNetwork({'image': placeholder_input}, trainable=trainable)
-    #     pretrain_path = 'train/cmu/bs8_lr0.0001_q_e80/model_latest-18000'
-    #     last_layer = 'Mconv7_stage6_L{aux}'
-    # elif type == 'vgg':
-    #     net = CmuNetwork({'image': placeholder_input}, trainable=trainable)
-    #     pretrain_path = 'numpy/openpose_vgg16.npy'
-    #     last_layer = 'Mconv7_stage6_L{aux}'
+    elif type in ['cmu', 'openpose']:
+        net = CmuNetwork({'image': placeholder_input}, trainable=trainable)
+        pretrain_path = 'numpy/openpose_coco.npy'
+        last_layer = 'Mconv7_stage6_L{aux}'
+    elif type in ['cmu_quantize', 'openpose_quantize']:
+        net = CmuNetwork({'image': placeholder_input}, trainable=trainable)
+        pretrain_path = 'train/cmu/bs8_lr0.0001_q_e80/model_latest-18000'
+        last_layer = 'Mconv7_stage6_L{aux}'
+    elif type == 'vgg':
+        net = CmuNetwork({'image': placeholder_input}, trainable=trainable)
+        pretrain_path = 'numpy/openpose_vgg16.npy'
+        last_layer = 'Mconv7_stage6_L{aux}'
 
     else:
         raise Exception('Invalid Model Name.')
@@ -138,7 +138,14 @@ def get_graph_path(model_name):
         'mobilenet_v2_large_r0.5': 'graph/mobilenet_v2_large/graph_r0.5_opt.pb',
         'mobilenet_v2_large_quantize': 'graph/mobilenet_v2_large/graph_opt_q.pb',
         'mobilenet_v2_small': 'graph/mobilenet_v2_small/graph_opt.pb',
-        'mobilenet_v2_0.75': 'graph/mobilenet_v2_0.75/graph_opt.pb'
+        'mobilenet_v2_0.75': 'graph/mobilenet_v2_0.75/graph_opt.pb',
+        '00_01': 'train/00_01_cvg31_m2_075_b24_g4/graph_frozen.pb',
+        '03_02': 'train/03_02_m2_0.75_stage5/graph_frozen.pb',
+        '03_03': 'train/03_03_m2_0.75_stage7_384x576/graph_frozen.pb',
+        '03_04': 'train/03_04_m2_0.75_stage7_320x480/graph_frozen.pb',
+        '04_00': 'train/04_m2_1.4_stage7_converged/graph_frozen.pb',
+        '06_01': 'train/06_01_m2_1.0_stage7/graph_frozen.pb',
+        '08_00': 'train/08_00_m2_large/graph_frozen.pb'
     }
 
     base_data_dir = dirname(dirname(abspath(__file__)))

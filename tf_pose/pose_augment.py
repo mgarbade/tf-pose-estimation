@@ -41,7 +41,7 @@ def pose_random_scale(meta):
             #                         point[1] * scaleh + 0.5) > newh:
             #     adjust_joint.append((-1, -1))
             #     continue
-            adjust_joint.append((int(point[0] * scalew + 0.5), int(point[1] * scaleh + 0.5)))
+            adjust_joint.append((int(point[0] * scalew + 0.5), int(point[1] * scaleh + 0.5)))  #TODO-MG: Shouldn't this be + 0.5*scalew? -> 0.5 meaning 1/2 grid size?
         adjust_joint_list.append(adjust_joint)
 
     meta.joint_list = adjust_joint_list
@@ -277,8 +277,6 @@ def pose_to_img(meta_l):
     img.astype(np.float16)
     # img = img - 127.5 # TODO-MG: Before using input-normalization -> extend this to the 0-padding applied to the image (use 'SAME' as padding)
     # img = img / 127.5
-
-
     meta_l[0].img = img
     return [
         meta_l[0].img,

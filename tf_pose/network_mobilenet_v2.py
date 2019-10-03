@@ -16,16 +16,28 @@ class Mobilenetv2Network(network_base.BaseNetwork):
         self.conv_width = conv_width
         self.refine_width = conv_width2
         self.num_stages = num_stages
+        self.trainable = trainable
         network_base.BaseNetwork.__init__(self, inputs, trainable)
 
     @layer
     def base(self, input, name):
-        with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):  # TODO-MG: Comment this line during evaluation / run_checkfile.py
-            net, endpoints = mobilenet_v2.mobilenet_base(input, self.conv_width, finegrain_classification_mode=(self.conv_width < 1.0))
+        if self.trainable:
+            print("MG: trainable is set to true")
+            with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):  # TODO-MG: Comment this line during evaluation / run_checkfile.py
+                net, endpoints = mobilenet_v2.mobilenet_base(input, self.conv_width, finegrain_classification_mode=(self.conv_width < 1.0))
+                for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
+                    self.layers['%s/%s' % (name, k)] = tensor
+                    # print(k, tensor.shape)
+                return net
+        else:
+            print("MG: trainable is set to false")
+            net, endpoints = mobilenet_v2.mobilenet_base(input, self.conv_width,
+                                                         finegrain_classification_mode=(self.conv_width < 1.0))
             for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
                 self.layers['%s/%s' % (name, k)] = tensor
                 # print(k, tensor.shape)
             return net
+
 
     def setup(self):
         depth2 = lambda x: int(x * self.refine_width)

@@ -23,14 +23,13 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='cmu', help='cmu / mobilenet / mobilenet_thin / mobilenet_v2_large / mobilenet_v2_small')
     parser.add_argument('--resize', type=str, default='0x0')
     parser.add_argument('--quantize', action='store_true')
-    # parser.add_argument('--out-graph', type=str, default='graph_def_binary.pb')
-    # parser.add_argument('--out-graph-path', type=str)
-    # parser.add_argument('--checkpoint', type=str, default='./models/train/test/')
     parser.add_argument('--checkpoint', type=str)
     parser.add_argument('--num-stages', type=int, default=7)
+    parser.add_argument('--out-graph', type=str, default='frozen_graph')
     args = parser.parse_args()
 
     w, h = model_wh(args.resize)
+    # w, h = args.input_width, args.input_height
     if w <= 0 or h <= 0:
         w = h = None
     print(w, h)
@@ -60,9 +59,8 @@ if __name__ == '__main__':
 
         graph = tf.get_default_graph()
         for n in tf.get_default_graph().as_graph_def().node:
-            if 'concat_stage' not in n.name:
-                continue
-            print(n.name)
+             if 'concat_stage' not in n.name:
+                 continue
+             print(n.name)
 
-        # saver = tf.train.Saver(max_to_keep=100)
-        # saver.save(sess, './tmp/chk', global_step=1)
+

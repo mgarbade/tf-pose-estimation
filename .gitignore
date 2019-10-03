@@ -33,6 +33,7 @@ models
 .idea
 qsub_*.sh
 tf_pose/pafprocess/pafprocess_wrap.cxx
+*.zip
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

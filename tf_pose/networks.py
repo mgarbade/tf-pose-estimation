@@ -130,6 +130,7 @@ def get_network(type, placeholder_input, sess_for_load=None, trainable=True, num
 
 
 def get_graph_path(model_name):
+    print("get_graph_path")
     dyn_graph_path = {
         'cmu': 'graph/cmu/graph_opt.pb',
         'openpose_quantize': 'graph/cmu/graph_opt_q.pb',
@@ -146,6 +147,7 @@ def get_graph_path(model_name):
         '04_00': 'train/04_m2_1.4_stage7_converged/graph_frozen.pb',
         '06_01': 'train/06_01_m2_1.0_stage7/graph_frozen.pb',
         '08_00': 'train/08_00_m2_large/graph_frozen.pb'
+        'mobilenet_v2_0.75': 'graph/mobilenet_v2_0.75/graph_opt.pb'
     }
 
     base_data_dir = dirname(dirname(abspath(__file__)))

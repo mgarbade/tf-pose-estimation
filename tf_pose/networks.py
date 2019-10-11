@@ -146,7 +146,9 @@ def get_graph_path(model_name):
         '03_04': 'train/03_04_m2_0.75_stage7_320x480/graph_frozen.pb',
         '04_00': 'train/04_m2_1.4_stage7_converged/graph_frozen.pb',
         '06_01': 'train/06_01_m2_1.0_stage7/graph_frozen.pb',
-        '08_00': 'train/08_00_m2_large/graph_frozen.pb'
+        '08_00': 'train/08_00_m2_large/graph_frozen.pb',
+        '10_00': 'train/10_00_finetune_yoga-19/graph_frozen.pb',
+        '10_01': 'train/10_01_finetune_yoga-combine-4/graph_frozen.pb',
         'mobilenet_v2_0.75': 'graph/mobilenet_v2_0.75/graph_opt.pb'
     }
 

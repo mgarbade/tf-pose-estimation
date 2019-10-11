@@ -81,9 +81,9 @@ if __name__ == '__main__':
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
     w, h = model_wh(args.resize)
     if w == 0 or h == 0:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368), num_stages=args.num_stages)
+        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368), num_stages=args.num_stages)
     else:
-        e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h), num_stages=args.num_stages)
+        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h), num_stages=args.num_stages)
 
     print('FLOPs: ', pose_estimator.get_flops())
 

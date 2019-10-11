@@ -27,11 +27,9 @@ wheels/
 
 # MG
 etcs
-0*.sh
-eval*.sh
+*.sh
 models
 .idea
-qsub_*.sh
 tf_pose/pafprocess/pafprocess_wrap.cxx
 *.zip
 

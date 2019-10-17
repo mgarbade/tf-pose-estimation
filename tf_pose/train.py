@@ -47,6 +47,7 @@ if __name__ == '__main__':
     
     num_sample_val = args.batchsize
     num_sample_train = args.batchsize
+
     save_interval = 2000
     if args.debug == True:
       print("Debugging Mode: VERY HIGH MODEL SAVIN RATIO")
@@ -310,3 +311,4 @@ if __name__ == '__main__':
 
         saver.save(sess, os.path.join(modelpath, args.tag, 'model'), global_step=global_step)
     logger.info('optimization finished. %f' % (time.time() - time_started))
+

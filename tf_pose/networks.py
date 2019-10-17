@@ -149,6 +149,7 @@ def get_graph_path(model_name):
         '08_00': 'train/08_00_m2_large/graph_frozen.pb',
         '10_00': 'train/10_00_finetune_yoga-19/graph_frozen.pb',
         '10_01': 'train/10_01_finetune_yoga-combine-4/graph_frozen.pb',
+        '10_02': 'train/10_02_frm_scrtch_combine-4/graph_frozen.pb',
         'mobilenet_v2_0.75': 'graph/mobilenet_v2_0.75/graph_opt.pb'
     }
 

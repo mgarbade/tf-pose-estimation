@@ -63,7 +63,7 @@ if __name__ == '__main__':
     set_network_input_wh(args.input_width, args.input_height)
     scale = 4
 
-    if args.model in ['cmu', 'vgg'] or 'mobilenet' in args.model:
+    if args.model in ['cmu', 'vgg', 'openpose'] or 'mobilenet' in args.model:
         scale = 8
 
     set_network_scale(scale)

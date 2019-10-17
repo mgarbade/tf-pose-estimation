@@ -8,19 +8,36 @@ from tf_pose.network_base import layer
 
 
 class Mobilenetv2Network(network_base.BaseNetwork):
-    def __init__(self, inputs, trainable=True, conv_width=1.0, conv_width2=1.0):
+    def __init__(self, inputs,
+                 trainable=True,
+                 conv_width=1.0,
+                 conv_width2=1.0,
+                 num_stages=7):
         self.conv_width = conv_width
         self.refine_width = conv_width2
+        self.num_stages = num_stages
+        self.trainable = trainable
         network_base.BaseNetwork.__init__(self, inputs, trainable)
 
     @layer
     def base(self, input, name):
-        with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):
-            net, endpoints = mobilenet_v2.mobilenet_base(input, self.conv_width, finegrain_classification_mode=(self.conv_width < 1.0))
+        if self.trainable:
+            print("MG: trainable is set to true")
+            with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope()):  # TODO-MG: Comment this line during evaluation / run_checkfile.py
+                net, endpoints = mobilenet_v2.mobilenet_base(input, self.conv_width, finegrain_classification_mode=(self.conv_width < 1.0))
+                for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
+                    self.layers['%s/%s' % (name, k)] = tensor
+                    # print(k, tensor.shape)
+                return net
+        else:
+            print("MG: trainable is set to false")
+            net, endpoints = mobilenet_v2.mobilenet_base(input, self.conv_width,
+                                                         finegrain_classification_mode=(self.conv_width < 1.0))
             for k, tensor in sorted(list(endpoints.items()), key=lambda x: x[0]):
                 self.layers['%s/%s' % (name, k)] = tensor
                 # print(k, tensor.shape)
             return net
+
 
     def setup(self):
         depth2 = lambda x: int(x * self.refine_width)
@@ -56,7 +73,7 @@ class Mobilenetv2Network(network_base.BaseNetwork):
              .separable_conv(1, 1, depth2(512), 1, name=prefix + '_L2_4')
              .separable_conv(1, 1, 19, 1, relu=False, name=prefix + '_L2_5'))
 
-            for stage_id in range(5):
+            for stage_id in range(self.num_stages - 2):  # Default is 5 + 2 -> Openpose/concat_stage7
                 prefix_prev = 'MConv_Stage%d' % (stage_id + 1)
                 prefix = 'MConv_Stage%d' % (stage_id + 2)
                 (self.feed(prefix_prev + '_L1_5',
@@ -79,9 +96,9 @@ class Mobilenetv2Network(network_base.BaseNetwork):
                  .separable_conv(1, 1, 19, 1, relu=False, name=prefix + '_L2_5'))
 
             # final result
-            (self.feed('MConv_Stage6_L2_5',
-                       'MConv_Stage6_L1_5')
-             .concat(3, name='concat_stage7'))
+            (self.feed('MConv_Stage' + str(self.num_stages - 1) + '_L2_5',
+                       'MConv_Stage' + str(self.num_stages - 1) + '_L1_5')
+             .concat(3, name='concat_stage' + str(self.num_stages)))
 
     def loss_l1_l2(self):
         l1s = []
@@ -95,7 +112,7 @@ class Mobilenetv2Network(network_base.BaseNetwork):
         return l1s, l2s
 
     def loss_last(self):
-        return self.get_output('MConv_Stage6_L1_5'), self.get_output('MConv_Stage6_L2_5')
+        return self.get_output('MConv_Stage' + str(self.num_stages - 1) + '_L1_5'), self.get_output('MConv_Stage' + str(self.num_stages - 1) + '_L2_5')
 
     def restorable_variables(self, only_backbone=True):
         vs = {v.op.name: v for v in tf.global_variables() if

@@ -41,7 +41,9 @@ if __name__ == '__main__':
     parser.add_argument('--input-width', type=int, default=432)
     parser.add_argument('--input-height', type=int, default=368)
     parser.add_argument('--quant-delay', type=int, default=-1)
+    parser.add_argument('--num-stages', type=int, default=7)
     args = parser.parse_args()
+    print(str(args).replace(',', '\n'))
 
     modelpath = logpath = './models/train/'
     
@@ -62,7 +64,7 @@ if __name__ == '__main__':
     set_network_input_wh(args.input_width, args.input_height)
     scale = 4
 
-    if args.model in ['cmu', 'vgg'] or 'mobilenet' in args.model:
+    if args.model in ['cmu', 'vgg', 'openpose'] or 'mobilenet' in args.model:
         scale = 8
 
     set_network_scale(scale)
@@ -83,7 +85,7 @@ if __name__ == '__main__':
     df_valid.reset_state()
     validation_cache = []
 
-    val_image = get_sample_images(args.input_width, args.input_height) # TODO: This returns a list of 12 items --> hardcoded
+    val_image = get_sample_images(args.input_width, args.input_height,num_sample_val) # TODO: This returns a list of 12 items --> hardcoded
     print("len(val_images): " + str(len(val_image)))
     val_image = val_image[0:num_sample_val]
     logger.debug('tensorboard val image: %d' % len(val_image))
@@ -103,7 +105,11 @@ if __name__ == '__main__':
     for gpu_id in range(args.gpus):
         with tf.device(tf.DeviceSpec(device_type="GPU", device_index=gpu_id)):
             with tf.variable_scope(tf.get_variable_scope(), reuse=(gpu_id > 0)):
-                net, pretrain_path, last_layer = get_network(args.model, q_inp_split[gpu_id])
+                net, pretrain_path, last_layer = get_network(args.model,
+                                                             q_inp_split[gpu_id],
+                                                             sess_for_load=None,
+                                                             trainable=True,
+                                                             num_stages=args.num_stages)
                 if args.checkpoint:
                     pretrain_path = args.checkpoint
                 vect, heat = net.loss_last()
@@ -131,7 +137,7 @@ if __name__ == '__main__':
         total_loss_ll = tf.reduce_sum([total_loss_ll_paf, total_loss_ll_heat])
 
         # define optimizer
-        step_per_epoch = 121745 // args.batchsize
+        step_per_epoch = 121745 // args.batchsize  # TODO-MG: train-size hardcoded
         global_step = tf.Variable(0, trainable=False)
         if ',' not in args.lr:
             starter_learning_rate = float(args.lr)

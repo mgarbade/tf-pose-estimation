@@ -75,8 +75,15 @@ class BaseNetwork(object):
         session: The current TensorFlow session
         ignore_missing: If true, serialized weights for missing layers are ignored.
         '''
-        data_dict = np.load(data_path, encoding='bytes').item()
+        data_dict = np.load(data_path, encoding='bytes', allow_pickle=True).item()
         for op_name, param_dict in data_dict.items():
+            # op_name_str = op_name.decode('utf-8')
+            op_name_str = op_name
+            print(op_name_str)
+            # if 'conv4_3' in op_name_str or 'conv4_4' in op_name_str or 'conv5_1' in op_name_str or 'conv5_2' in op_name_str or 'conv5_3' in op_name_str or 'conv5_4' in op_name_str:
+            #     continue
+            if 'conv5_1' in op_name_str:
+                continue
             if isinstance(data_dict[op_name], np.ndarray):
                 if 'RMSProp' in op_name:
                     continue

@@ -53,6 +53,7 @@ if __name__ == '__main__':
     parser.add_argument('--cocoyear', type=str, default='2014')
     parser.add_argument('--coco-dir', type=str, default='/data/public/rw/coco/')
     parser.add_argument('--data-idx', type=int, default=-1)
+    parser.add_argument('--num-stages', type=int, default=7)
     parser.add_argument('--multi-scale', type=bool, default=False)
     args = parser.parse_args()
 
@@ -75,17 +76,18 @@ if __name__ == '__main__':
     else:
         keys = [keys[args.data_idx]]
     logger.info('validation %s set size=%d' % (coco_json_file, len(keys)))
-    write_json = '../etcs/%s_%s_%0.1f.json' % (args.model, args.resize, args.resize_out_ratio)
+    write_json = './etcs/%s_%s_%0.1f_%s.json' % (args.model, args.resize, args.resize_out_ratio, os.path.basename(os.path.dirname(args.coco_dir)))
 
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
     w, h = model_wh(args.resize)
     if w == 0 or h == 0:
-        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368))
+        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(432, 368), num_stages=args.num_stages)
     else:
-        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
+        pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h), num_stages=args.num_stages)
 
     print('FLOPs: ', pose_estimator.get_flops())
 
+    fp = open(write_json, 'w')
     result = []
     tqdm_keys = tqdm(keys)
     for i, k in enumerate(tqdm_keys):
@@ -119,6 +121,7 @@ if __name__ == '__main__':
         avg_score = scores / len(humans) if len(humans) > 0 else 0
         tqdm_keys.set_postfix(OrderedDict({'inference time': elapsed, 'score': avg_score}))
         if args.data_idx >= 0:
+        # if 1 >= 0:
             logger.info('score:', k, len(humans), len(anns), avg_score)
 
             import matplotlib.pyplot as plt
@@ -150,7 +153,7 @@ if __name__ == '__main__':
 
             plt.show()
 
-    fp = open(write_json, 'w')
+
     json.dump(result, fp)
     fp.close()
 

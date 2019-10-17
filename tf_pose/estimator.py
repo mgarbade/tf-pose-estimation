@@ -303,8 +303,9 @@ class PoseEstimator:
 class TfPoseEstimator:
     # TODO : multi-scale
 
-    def __init__(self, graph_path, target_size=(320, 240), tf_config=None, trt_bool=False):
+    def __init__(self, graph_path, target_size=(320, 240), tf_config=None, trt_bool=False, num_stages=7):
         self.target_size = target_size
+        self.num_stages = num_stages
 
         # load graph
         logger.info('loading graph from %s(default size=%dx%d)' % (graph_path, target_size[0], target_size[1]))
@@ -313,7 +314,7 @@ class TfPoseEstimator:
             graph_def.ParseFromString(f.read())
 
         if trt_bool is True:
-            output_nodes = ["Openpose/concat_stage7"]
+            output_nodes = ["Openpose/concat_stage" + str(self.num_stages)]
             graph_def = trt.create_inference_graph(
                 graph_def,
                 output_nodes,
@@ -331,11 +332,11 @@ class TfPoseEstimator:
         tf.import_graph_def(graph_def, name='TfPoseEstimator')
         self.persistent_sess = tf.Session(graph=self.graph, config=tf_config)
 
-        for ts in [n.name for n in tf.get_default_graph().as_graph_def().node]:
-            print(ts)
+        # for ts in [n.name for n in tf.get_default_graph().as_graph_def().node]:
+        #     print(ts)
 
         self.tensor_image = self.graph.get_tensor_by_name('TfPoseEstimator/image:0')
-        self.tensor_output = self.graph.get_tensor_by_name('TfPoseEstimator/Openpose/concat_stage7:0')
+        self.tensor_output = self.graph.get_tensor_by_name('TfPoseEstimator/Openpose/concat_stage' + str(self.num_stages) + ':0')
         self.tensor_heatMat = self.tensor_output[:, :, :, :19]
         self.tensor_pafMat = self.tensor_output[:, :, :, 19:]
         self.upsample_size = tf.placeholder(dtype=tf.int32, shape=(2,), name='upsample_size')

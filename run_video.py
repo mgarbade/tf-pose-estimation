@@ -36,19 +36,47 @@ if __name__ == '__main__':
 
     if cap.isOpened() is False:
         print("Error opening video stream or file")
+
+    frame_rate = 30
+    prev = 0
     while cap.isOpened():
-        ret_val, image = cap.read()
+        time_elapsed = time.time() - prev
+        if time_elapsed > 1. / frame_rate:
+            res, image = cap.read()
+            prev = time.time()
 
-        humans = e.inference(image)
-        if not args.showBG:
-            image = np.zeros(image.shape)
-        image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
+            # Do something with your image here.
+            humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=4)
+            if not args.showBG:
+                image = np.zeros(image.shape)
+            image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
 
-        cv2.putText(image, "FPS: %f" % (1.0 / (time.time() - fps_time)), (10, 10),  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        cv2.imshow('tf-pose-estimation result', image)
-        fps_time = time.time()
-        if cv2.waitKey(1) == 27:
-            break
+            cv2.putText(image, "FPS: %f" % (1.0 / (time.time() - fps_time)), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                        (0, 255, 0), 2)
+            cv2.imshow('tf-pose-estimation result', image)
+            fps_time = time.time()
+            if cv2.waitKey(1) == 27:
+                break
+
+    # while cap.isOpened():
+    #     ret_val, image = cap.read()
+    #
+    #     # Rotate ccw if necessary
+    #     # image = cv2.transpose(image)
+    #     # image = cv2.flip(image, flipCode=0)
+    #
+    #     # humans = e.inference(image)
+    #     humans = e.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=4)
+    #
+    #     if not args.showBG:
+    #         image = np.zeros(image.shape)
+    #     image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
+    #
+    #     cv2.putText(image, "FPS: %f" % (1.0 / (time.time() - fps_time)), (10, 10),  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    #     cv2.imshow('tf-pose-estimation result', image)
+    #     fps_time = time.time()
+    #     if cv2.waitKey(1) == 27:
+    #         break
 
     cv2.destroyAllWindows()
 logger.debug('finished+')

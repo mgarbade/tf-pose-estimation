@@ -16,70 +16,70 @@ def _get_base_path():
     return os.environ.get('OPENPOSE_MODEL')
 
 
-def get_network(type, placeholder_input, sess_for_load=None, trainable=True):
-    if type == 'mobilenet':
-        net = MobilenetNetwork({'image': placeholder_input}, conv_width=0.75, conv_width2=1.00, trainable=trainable)
-        pretrain_path = 'pretrained/mobilenet_v1_0.75_224_2017_06_14/mobilenet_v1_0.75_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
-    elif type == 'mobilenet_fast':
-        net = MobilenetNetwork({'image': placeholder_input}, conv_width=0.5, conv_width2=0.5, trainable=trainable)
-        pretrain_path = 'pretrained/mobilenet_v1_0.75_224_2017_06_14/mobilenet_v1_0.75_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
-    elif type == 'mobilenet_accurate':
-        net = MobilenetNetwork({'image': placeholder_input}, conv_width=1.00, conv_width2=1.00, trainable=trainable)
-        pretrain_path = 'pretrained/mobilenet_v1_1.0_224_2017_06_14/mobilenet_v1_1.0_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+def get_network(type, placeholder_input, sess_for_load=None, trainable=True, num_stages=7):
+    # if type == 'mobilenet':
+    #     net = MobilenetNetwork({'image': placeholder_input}, conv_width=0.75, conv_width2=1.00, trainable=trainable)
+    #     pretrain_path = 'pretrained/mobilenet_v1_0.75_224_2017_06_14/mobilenet_v1_0.75_224.ckpt'
+    #     last_layer = 'MConv_Stage6_L{aux}_5'
+    # elif type == 'mobilenet_fast':
+    #     net = MobilenetNetwork({'image': placeholder_input}, conv_width=0.5, conv_width2=0.5, trainable=trainable)
+    #     pretrain_path = 'pretrained/mobilenet_v1_0.75_224_2017_06_14/mobilenet_v1_0.75_224.ckpt'
+    #     last_layer = 'MConv_Stage6_L{aux}_5'
+    # elif type == 'mobilenet_accurate':
+    #     net = MobilenetNetwork({'image': placeholder_input}, conv_width=1.00, conv_width2=1.00, trainable=trainable)
+    #     pretrain_path = 'pretrained/mobilenet_v1_1.0_224_2017_06_14/mobilenet_v1_1.0_224.ckpt'
+    #     last_layer = 'MConv_Stage6_L{aux}_5'
+    #
+    # elif type == 'mobilenet_thin':
+    #     net = MobilenetNetworkThin({'image': placeholder_input}, conv_width=0.75, conv_width2=0.50, trainable=trainable)
+    #     pretrain_path = 'pretrained/mobilenet_v1_0.75_224_2017_06_14/mobilenet_v1_0.75_224.ckpt'
+    #     last_layer = 'MConv_Stage6_L{aux}_5'
 
-    elif type == 'mobilenet_thin':
-        net = MobilenetNetworkThin({'image': placeholder_input}, conv_width=0.75, conv_width2=0.50, trainable=trainable)
-        pretrain_path = 'pretrained/mobilenet_v1_0.75_224_2017_06_14/mobilenet_v1_0.75_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
-
-    elif type in ['mobilenet_v2_w1.4_r1.0', 'mobilenet_v2_large', 'mobilenet_v2_large_quantize']:       # m_v2_large
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.4, conv_width2=1.0, trainable=trainable)
+    if type in ['mobilenet_v2_w1.4_r1.0', 'mobilenet_v2_large', 'mobilenet_v2_large_quantize']:       # m_v2_large
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.4, conv_width2=1.0, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_1.4_224/mobilenet_v2_1.4_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_w1.4_r0.5':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.4, conv_width2=0.5, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.4, conv_width2=0.5, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_1.4_224/mobilenet_v2_1.4_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_w1.0_r1.0':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, conv_width2=1.0, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, conv_width2=1.0, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_1.0_224/mobilenet_v2_1.0_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_w1.0_r0.75':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, conv_width2=0.75, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, conv_width2=0.75, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_1.0_224/mobilenet_v2_1.0_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_w1.0_r0.5':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, conv_width2=0.5, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, conv_width2=0.5, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_1.0_224/mobilenet_v2_1.0_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_w0.75_r0.75':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.75, conv_width2=0.75, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.75, conv_width2=0.75, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_0.75_224/mobilenet_v2_0.75_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_w0.5_r0.5' or type == 'mobilenet_v2_small':                                # m_v2_fast
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.5, conv_width2=0.5, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.5, conv_width2=0.5, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_0.5_224/mobilenet_v2_0.5_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
 
     elif type == 'mobilenet_v2_1.4':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.4, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.4, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_1.4_224/mobilenet_v2_1.4_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_1.0':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=1.0, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_1.0_224/mobilenet_v2_1.0_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_0.75':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.75, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.75, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_0.75_224/mobilenet_v2_0.75_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
     elif type == 'mobilenet_v2_0.5':
-        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.5, trainable=trainable)
+        net = Mobilenetv2Network({'image': placeholder_input}, conv_width=0.5, trainable=trainable, num_stages=num_stages)
         pretrain_path = 'pretrained/mobilenet_v2_0.5_224/mobilenet_v2_0.5_224.ckpt'
-        last_layer = 'MConv_Stage6_L{aux}_5'
+        last_layer = 'MConv_Stage' + str(num_stages - 1) + '_L{aux}_5'
 
     elif type in ['cmu', 'openpose']:
         net = CmuNetwork({'image': placeholder_input}, trainable=trainable)
@@ -98,6 +98,7 @@ def get_network(type, placeholder_input, sess_for_load=None, trainable=True):
         raise Exception('Invalid Model Name.')
 
     pretrain_path_full = os.path.join(_get_base_path(), pretrain_path)
+    print(pretrain_path_full)
     if sess_for_load is not None:
         if type in ['cmu', 'vgg', 'openpose']:
             if not os.path.isfile(pretrain_path_full):
@@ -117,6 +118,7 @@ def get_network(type, placeholder_input, sess_for_load=None, trainable=True):
                 'mobilenet_v2_large': 'trained/mobilenet_v2_w1.4_r1.0/model-570000',
                 'mobilenet_v2_small': 'trained/mobilenet_v2_w0.5_r0.5/model_latest-380401',
             }
+            print(type)
             ckpt_path = os.path.join(_get_base_path(), ckpts[type])
             loader = tf.train.Saver()
             try:
@@ -137,6 +139,17 @@ def get_graph_path(model_name):
         'mobilenet_v2_large_r0.5': 'graph/mobilenet_v2_large/graph_r0.5_opt.pb',
         'mobilenet_v2_large_quantize': 'graph/mobilenet_v2_large/graph_opt_q.pb',
         'mobilenet_v2_small': 'graph/mobilenet_v2_small/graph_opt.pb',
+        'mobilenet_v2_0.75': 'graph/mobilenet_v2_0.75/graph_opt.pb',
+        '00_01': 'train/00_01_cvg31_m2_075_b24_g4/graph_frozen.pb',
+        '03_02': 'train/03_02_m2_0.75_stage5/graph_frozen.pb',
+        '03_03': 'train/03_03_m2_0.75_stage7_384x576/graph_frozen.pb',
+        '03_04': 'train/03_04_m2_0.75_stage7_320x480/graph_frozen.pb',
+        '04_00': 'train/04_m2_1.4_stage7_converged/graph_frozen.pb',
+        '06_01': 'train/06_01_m2_1.0_stage7/graph_frozen.pb',
+        '08_00': 'train/08_00_m2_large/graph_frozen.pb',
+        '10_00': 'train/10_00_finetune_yoga-19/graph_frozen.pb',
+        '10_01': 'train/10_01_finetune_yoga-combine-4/graph_frozen.pb',
+        '10_02': 'train/10_02_frm_scrtch_combine-4/graph_frozen.pb',
         'mobilenet_v2_0.75': 'graph/mobilenet_v2_0.75/graph_opt.pb'
     }
 

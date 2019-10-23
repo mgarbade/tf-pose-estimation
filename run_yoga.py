@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     logger.debug('initialization %s : %s' % (args.model, get_graph_path(args.model)))
     w, h = model_wh(args.resolution)
-    e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
+    pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
     cap = cv2.VideoCapture(args.video)
     cap_target = cv2.VideoCapture(args.target)
 
@@ -41,9 +41,10 @@ if __name__ == '__main__':
     if cap_target.isOpened() is False:
         print("Error opening video stream or file")
 
-    # startAtFrame = 25 * 10 + 4
-    # for i in range(startAtFrame):
-    #     tmp1, tmp2 = cap.read()
+    startAtFrame = 25 * 60 * 2 + 25 * 49
+    for i in range(startAtFrame):
+        tmp1, tmp2 = cap.read()
+        tmp3, tmp4 = cap_target.read()
 
 
     frame_rate = 25
@@ -66,13 +67,13 @@ if __name__ == '__main__':
 
 
             # Do something with your image here.
-            student = e.inference(img_student, resize_to_default=(w > 0 and h > 0), upsample_size=4)
+            student = pose_estimator.inference(img_student, resize_to_default=(w > 0 and h > 0), upsample_size=4, estimate_paf=False)
             if not args.showBG:
                 img_student = np.zeros(img_student.shape)
             img_student = TfPoseEstimator.draw_humans(img_student, student, imgcopy=False)
 
             # Detect human on target image
-            teacher = e.inference(img_teacher, resize_to_default=(w > 0 and h > 0), upsample_size=4)
+            teacher = pose_estimator.inference(img_teacher, resize_to_default=(w > 0 and h > 0), upsample_size=4, estimate_paf=False)
             if not args.showBG:
                 img_student = np.zeros(img_student.shape)
             img_teacher = TfPoseEstimator.draw_humans(img_teacher, teacher, imgcopy=False)

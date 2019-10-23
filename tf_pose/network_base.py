@@ -82,8 +82,8 @@ class BaseNetwork(object):
             print(op_name_str)
             # if 'conv4_3' in op_name_str or 'conv4_4' in op_name_str or 'conv5_1' in op_name_str or 'conv5_2' in op_name_str or 'conv5_3' in op_name_str or 'conv5_4' in op_name_str:
             #     continue
-            if 'conv5_1' in op_name_str:
-                continue
+            # if 'conv5_1' in op_name_str:
+            #     continue
             if isinstance(data_dict[op_name], np.ndarray):
                 if 'RMSProp' in op_name:
                     continue

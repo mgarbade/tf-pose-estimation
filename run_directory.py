@@ -12,8 +12,8 @@ import numpy as np
 from estimator import TfPoseEstimator
 from networks import get_graph_path, model_wh
 
-from lifting.prob_model import Prob3dPose
-from lifting.draw import plot_pose
+# from lifting.prob_model import Prob3dPose
+# from lifting.draw import plot_pose
 
 logger = logging.getLogger('TfPoseEstimator')
 logger.setLevel(logging.DEBUG)
@@ -34,22 +34,25 @@ if __name__ == '__main__':
     scales = ast.literal_eval(args.scales)
 
     w, h = model_wh(args.resolution)
-    e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
+    pose_estimator = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
 
     files_grabbed = glob.glob(os.path.join(args.folder, '*.jpg'))
     all_humans = dict()
     for i, file in enumerate(files_grabbed):
         # estimate human poses from a single image !
         image = common.read_imgfile(file, None, None)
+        # image = cv2.resize(image, (256, 384))
         t = time.time()
-        humans = e.inference(image, scales=scales)
+        # humans = pose_estimator.inference(image, scales=scales)
+        humans = pose_estimator.inference(image, resize_to_default=(w > 0 and h > 0), upsample_size=4, estimate_paf=False)
         elapsed = time.time() - t
 
         logger.info('inference image #%d: %s in %.4f seconds.' % (i, file, elapsed))
 
         image = TfPoseEstimator.draw_humans(image, humans, imgcopy=False)
         cv2.imshow('tf-pose-estimation result', image)
-        cv2.waitKey(5)
+        cv2.waitKey(0)
+        cv2.imwrite('/home/garbade/Pictures/mady_with_poses_2.jpg', image)
 
         all_humans[file.replace(args.folder, '')] = humans
 

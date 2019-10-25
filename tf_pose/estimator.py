@@ -411,6 +411,7 @@ class TfPoseEstimator:
 
     @staticmethod
     def draw_humans(npimg, humans, imgcopy=False):
+        minPartConf = 0.1
         if imgcopy:
             npimg = np.copy(npimg)
         image_h, image_w = npimg.shape[:2]
@@ -424,18 +425,19 @@ class TfPoseEstimator:
                 body_part = human.body_parts[i]
                 center = (int(body_part.x * image_w + 0.5), int(body_part.y * image_h + 0.5))
                 centers[i] = center
-                cv2.circle(npimg, center, 3, common.CocoColors[i], thickness=3, lineType=8, shift=0)
+                if human.body_parts[i].score > minPartConf:
+                    cv2.circle(npimg, center, 3, common.CocoColors[i], thickness=3, lineType=8, shift=0)
 
             # draw line
             for pair_order, pair in enumerate(common.CocoPairsRender):
                 if pair[0] not in human.body_parts.keys() or pair[1] not in human.body_parts.keys():
                     continue
-
-                # npimg = cv2.line(npimg, centers[pair[0]], centers[pair[1]], common.CocoColors[pair_order], 3)
-                cv2.line(npimg, centers[pair[0]], centers[pair[1]], common.CocoColors[pair_order], 3)
+                # cv2.line(npimg, centers[pair[0]], centers[pair[1]], common.CocoColors[pair_order], 3)
+                if human.body_parts[pair[0]].score > minPartConf and human.body_parts[pair[1]].score > minPartConf:
+                      cv2.line(npimg, centers[pair[0]], centers[pair[1]], common.CocoColors[pair_order], 3)
 
             # draw angle
-            radius = 30
+            radius = 20
             axes = (radius, radius)
             # shoulder_elbow_left -> angle:  1, shoulder_left_id = 5
             # elbow_shoulder_left -> angle:  2, elbow_left_id = 6
@@ -447,6 +449,7 @@ class TfPoseEstimator:
             # knee_ankle_right -> angle:  8, knee_right_id = 9
 
             # cv2.ellipse(image, center, axes, angle, startAngle, endAngle, color, thickness)
+            neck_id = 1
             shoulder_left_id = 5
             shoulder_right_id = 2
             elbow_left_id = 6
@@ -460,16 +463,38 @@ class TfPoseEstimator:
             ankle_left_id = 13
             ankle_right_id = 10
 
-            cv2.ellipse(npimg, centers[shoulder_left_id], axes, np.degrees(human.start_angles[1]), 0, np.degrees(human.angles[1]), (0, 0, 255),3)
-            cv2.ellipse(npimg, centers[elbow_left_id], axes, np.degrees(human.start_angles[2]), 0, np.degrees(human.angles[2]), (0, 0, 255), 3)
-            cv2.ellipse(npimg, centers[shoulder_right_id], axes, np.degrees(human.start_angles[3]), 0, np.degrees(human.angles[3]), (0, 0, 255),3)
-            cv2.ellipse(npimg, centers[elbow_right_id], axes, np.degrees(human.start_angles[4]), 0, np.degrees(human.angles[4]), (0, 0, 255), 3)
-            cv2.ellipse(npimg, centers[hip_left_id], axes, np.degrees(human.start_angles[5]), 0, np.degrees(human.angles[5]), (0, 0, 255), 3)
-            cv2.ellipse(npimg, centers[knee_left_id], axes, np.degrees(human.start_angles[6]), 0, np.degrees(human.angles[6]), (0, 0, 255), 3)
-            cv2.ellipse(npimg, centers[hip_right_id], axes, np.degrees(human.start_angles[7]), 0, np.degrees(human.angles[7]), (0, 0, 255), 3)
-            cv2.ellipse(npimg, centers[knee_right_id], axes, np.degrees(human.start_angles[8]), 0, np.degrees(human.angles[8]), (0, 0, 255), 3)
+            angle_ids = [neck_id, shoulder_left_id, elbow_left_id, shoulder_right_id, elbow_right_id, hip_left_id, knee_left_id, hip_right_id, knee_right_id]
+            angle_conf_ids = [[neck_id,shoulder_right_id,shoulder_left_id],
+                              [elbow_left_id, shoulder_left_id, hip_left_id],
+                              [wrist_left_id, elbow_left_id, shoulder_left_id],
+                              [elbow_right_id, shoulder_right_id, hip_right_id],
+                              [wrist_right_id, elbow_right_id, shoulder_right_id],
+                              [hip_left_id, shoulder_left_id, knee_left_id],
+                              [knee_left_id, hip_left_id, ankle_left_id],
+                              [hip_right_id, shoulder_right_id, knee_right_id],
+                              [knee_right_id, hip_right_id, ankle_right_id]]
+
+            for idx in range(1, 9):
+                if TfPoseEstimator.check_angle_confidence(human.body_parts[angle_conf_ids[idx][0]],
+                                                          human.body_parts[angle_conf_ids[idx][1]],
+                                                          human.body_parts[angle_conf_ids[idx][2]], minPartConf):
+                    cv2.ellipse(npimg, centers[angle_ids[idx]], axes, human.start_angles[idx], 0, human.angles[idx], (0, 0, 255), 2)
+
+            # cv2.ellipse(npimg, centers[shoulder_left_id], axes, human.start_angles[1], 0, human.angles[1], (0, 0, 255), 2)
+            # cv2.ellipse(npimg, centers[elbow_left_id], axes, human.start_angles[2], 0, human.angles[2], (0, 0, 255), 2)
+            # cv2.ellipse(npimg, centers[shoulder_right_id], axes, human.start_angles[3], 0, human.angles[3], (0, 0, 255), 2)
+            # cv2.ellipse(npimg, centers[elbow_right_id], axes, human.start_angles[4], 0, human.angles[4], (0, 0, 255), 2)
+            # cv2.ellipse(npimg, centers[hip_left_id], axes, human.start_angles[5], 0, human.angles[5], (0, 0, 255), 2)
+            # cv2.ellipse(npimg, centers[knee_left_id], axes, human.start_angles[6], 0, human.angles[6], (0, 0, 255), 2)
+            # cv2.ellipse(npimg, centers[hip_right_id], axes, human.start_angles[7], 0, human.angles[7], (0, 0, 255), 2)
+            # cv2.ellipse(npimg, centers[knee_right_id], axes, human.start_angles[8], 0, human.angles[8], (0, 0, 255), 2)
 
         return npimg
+
+    @staticmethod
+    def check_angle_confidence(keypoint_a, keypoint_b, keypoint_c, minPartConf):
+        return keypoint_a.score > minPartConf and keypoint_b.score > minPartConf and keypoint_c.score > minPartConf
+
 
     def _get_scaled_img(self, npimg, scale):
         get_base_scale = lambda s, w, h: max(self.target_size[0] / float(h), self.target_size[1] / float(w)) * s
@@ -699,25 +724,26 @@ class TfPoseEstimator:
         human.angles[3] = self.angle_between((shoulder_elbow_right.x, shoulder_elbow_right.y), (shoulder_hip_right.x, shoulder_hip_right.y))
         human.angles[4] = self.angle_between((elbow_shoulder_right.x, elbow_shoulder_right.y), (elbow_wrist_right.x, elbow_wrist_right.y))
         human.angles[5] = self.angle_between((hip_knee_left.x, hip_knee_left.y), (hip_shoulder_left.x, hip_shoulder_left.y))
-        human.angles[6] = self.angle_between((knee_ankle_left.x, knee_ankle_left.y), (knee_hip_left.x, knee_hip_left.y))
+        human.angles[6] = self.angle_between((knee_hip_left.x, knee_hip_left.y), (knee_ankle_left.x, knee_ankle_left.y))
         human.angles[7] = self.angle_between((hip_knee_right.x, hip_knee_right.y), (hip_shoulder_right.x, hip_shoulder_right.y))
-        human.angles[8] = self.angle_between((knee_ankle_right.x, knee_ankle_right.y), (knee_hip_right.x, knee_hip_right.y))
+        human.angles[8] = self.angle_between((knee_hip_right.x, knee_hip_right.y), (knee_ankle_right.x, knee_ankle_right.y))
 
         # self.start_angles = np.zeros(9)
         human.start_angles[0] = 0
-        human.start_angles[1] = self.angle_between((shoulder_elbow_left.x, shoulder_elbow_left.y), (1, 0))
-        human.start_angles[2] = self.angle_between((elbow_shoulder_left.x, elbow_shoulder_left.y), (1, 0))
-        human.start_angles[3] = self.angle_between((shoulder_elbow_right.x, shoulder_elbow_right.y), (1, 0))
-        human.start_angles[4] = self.angle_between((elbow_shoulder_right.x, elbow_shoulder_right.y), (1, 0))
-        human.start_angles[5] = self.angle_between((hip_knee_left.x, hip_knee_left.y), (1, 0))
+        human.start_angles[1] = self.angle_between((shoulder_hip_left.x, shoulder_hip_left.y), (1, 0))
+        human.start_angles[2] = self.angle_between((elbow_wrist_left.x, elbow_wrist_left.y), (1, 0))
+        human.start_angles[3] = self.angle_between((shoulder_hip_right.x, shoulder_hip_right.y), (1, 0))
+        human.start_angles[4] = self.angle_between((elbow_wrist_right.x, elbow_wrist_right.y), (1, 0))
+        human.start_angles[5] = self.angle_between((hip_shoulder_left.x, hip_shoulder_left.y), (1, 0))
         human.start_angles[6] = self.angle_between((knee_ankle_left.x, knee_ankle_left.y), (1, 0))
-        human.start_angles[7] = self.angle_between((hip_knee_right.x, hip_knee_right.y), (1, 0))
+        human.start_angles[7] = self.angle_between((hip_shoulder_right.x, hip_shoulder_right.y), (1, 0))
         human.start_angles[8] = self.angle_between((knee_ankle_right.x, knee_ankle_right.y), (1, 0))
 
 
 
         for i in range(9):
-            print(np.degrees(human.angles[i]))
+            print(str(np.round(human.start_angles[i])) + ', ' + str(np.round(human.angles[i])))
+
 
 
 
@@ -727,20 +753,33 @@ class TfPoseEstimator:
         return vector / np.linalg.norm(vector)
 
     def angle_between(self, v1, v2):
-        """ Returns the angle in radians between vectors 'v1' and 'v2'::
-                >>> angle_between((1, 0, 0), (0, 1, 0))
-                1.5707963267948966
-                >>> angle_between((1, 0, 0), (1, 0, 0))
-                0.0
-                >>> angle_between((1, 0, 0), (-1, 0, 0))
-                3.141592653589793
-        """
-        v1_u = self.unit_vector(v1)
-        v2_u = self.unit_vector(v2)
-        return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+        # """ Returns the angle in radians between vectors 'v1' and 'v2'::
+        #         >>> angle_between((1, 0, 0), (0, 1, 0))
+        #         1.5707963267948966
+        #         >>> angle_between((1, 0, 0), (1, 0, 0))
+        #         0.0
+        #         >>> angle_between((1, 0, 0), (-1, 0, 0))
+        #         3.141592653589793
+        # """
+        # v1_u = self.unit_vector(v1)
+        # v2_u = self.unit_vector(v2)
+        # return np.degrees(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)))
+        # dx1 = v1[0]
+        # dx2 = v1[1]
+        # dy1 = v2[0]
+        # dy2 = v2[1]
+        # return np.arctan2(dx1*dy2-dx2*dy1, dx1*dy1+dx2*dy2)
+        angle1 = np.degrees(np.arctan2(v1[0], v1[1]))
+        if angle1 < 0:
+            angle1 = 360 + angle1
+        angle2 = np.degrees(np.arctan2(v2[0], v2[1]))
+        if angle2 < 0:
+            angle2 = 360 + angle2
+        return angle2 - angle1
 
-    def check_angle_confidence(self, keypoint_a, keypoint_b, keypoint_c):
-        return keypoint_a.score > self.minPartConf and keypoint_b.score > self.minPartConf and keypoint_c.score > self.minPartConf
+    @staticmethod
+    def check_angle_confidence(keypoint_a, keypoint_b, keypoint_c, minPartConf):
+        return keypoint_a.score > minPartConf and keypoint_b.score > minPartConf and keypoint_c.score > minPartConf
 
 
 class vec2D:

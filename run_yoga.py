@@ -18,6 +18,56 @@ logger.addHandler(ch)
 
 fps_time = 0
 
+def draw_angle_confidence(img, teacher, student):
+    # cv2.ellipse(image, center, axes, angle, startAngle, endAngle, color, thickness)
+    neck_id = 1
+    shoulder_left_id = 5
+    shoulder_right_id = 2
+    elbow_left_id = 6
+    elbow_right_id = 3
+    wrist_left_id = 7
+    wrist_right_id = 4
+    hip_left_id = 11
+    hip_right_id = 8
+    knee_left_id = 12
+    knee_right_id = 9
+    ankle_left_id = 13
+    ankle_right_id = 10
+
+    angle_ids = [shoulder_left_id,
+                 elbow_left_id,
+                 shoulder_right_id,
+                 elbow_right_id,
+                 hip_left_id,
+                 knee_left_id,
+                 hip_right_id,
+                 knee_right_id]
+
+    # Absolute distance between angles
+    angle_distances = np.abs((np.mod(np.abs(teacher[0].angles[1:]), 180) - np.mod(np.abs(student[0].angles[1:]), 180)))
+    print(angle_distances)
+    overlay_student = img.copy()
+    img_student_accuracy = img.copy()
+    alpha = 0.7
+    image_h, image_w = overlay_student.shape[:2]
+    counter = 0
+    for i in angle_ids:
+        body_part = student[0].body_parts[i]
+        center = (int(body_part.x * image_w + 0.5), int(body_part.y * image_h + 0.5))
+        distance = angle_distances[counter]
+        counter = counter + 1
+        color = (0, 0, 255)
+        if distance < 30:
+            color = (255, 0, 0)
+        if distance < 15:
+            color = (0, 255, 0)
+        cv2.circle(overlay_student, center, 10, color, -1, 8, 0)
+    cv2.addWeighted(overlay_student, alpha, img_student_accuracy, 1 - alpha, 0, img_student_accuracy)
+    return img_student_accuracy
+
+
+keyframes = [10, 31, 35, 68, 80]  # compare teacher <-> student around +-3 seconds around these frames
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='tf-pose-estimation Video')
@@ -50,6 +100,7 @@ if __name__ == '__main__':
     frame_rate = 25
     prev = 0
     time_start = time.time()
+    counter = 0
     while cap.isOpened():
         time_elapsed = time.time() - prev
 
@@ -58,31 +109,30 @@ if __name__ == '__main__':
 
             res, img_student = cap.read()
             res_target, img_teacher = cap_target.read()
+            counter = counter + 1
 
             # Rotate ccw if necessary
-            # image = cv2.transpose(image)
-            # image = cv2.flip(image, flipCode=0)
-
-
-
+            # img_student = cv2.transpose(img_student)
+            img_student = cv2.flip(img_student, flipCode=1)
 
             # Do something with your image here.
             student = pose_estimator.inference(img_student, resize_to_default=(w > 0 and h > 0), upsample_size=4, estimate_paf=False)
-            if not args.showBG:
-                img_student = np.zeros(img_student.shape)
-            img_student = TfPoseEstimator.draw_humans(img_student, student, imgcopy=False)
+            img_student_angles = img_student.copy()
+            img_student_angles = TfPoseEstimator.draw_humans(img_student_angles, student, imgcopy=False)
 
             # Detect human on target image
             teacher = pose_estimator.inference(img_teacher, resize_to_default=(w > 0 and h > 0), upsample_size=4, estimate_paf=False)
-            if not args.showBG:
-                img_student = np.zeros(img_student.shape)
             img_teacher = TfPoseEstimator.draw_humans(img_teacher, teacher, imgcopy=False)
 
-            cv2.putText(img_student, "FPS: %.1f" % (1.0 / (time.time() - fps_time)), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+            img_student_accuracy = draw_angle_confidence(img_student, teacher, student)
+
+            cv2.putText(img_student_angles, "FPS: %.1f" % (1.0 / (time.time() - fps_time)), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                         (0, 255, 0), 2)
             cv2.putText(img_teacher, "Time total: %.1f" % (time.time() - time_start), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                         (0, 255, 0), 2)
-            numpy_horizontal = np.hstack((img_student, img_teacher))
+            cv2.putText(img_student_accuracy, "Frame-Number: %d" % (counter / 25), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+                        (0, 255, 0), 2)
+            numpy_horizontal = np.hstack((img_student_angles, img_teacher, img_student_accuracy))
             cv2.imshow('Numpy Horizontal', numpy_horizontal)
 
             fps_time = time.time()

@@ -464,7 +464,7 @@ class TfPoseEstimator:
             ankle_right_id = 10
 
             angle_ids = [neck_id, shoulder_left_id, elbow_left_id, shoulder_right_id, elbow_right_id, hip_left_id, knee_left_id, hip_right_id, knee_right_id]
-            angle_conf_ids = [[neck_id,shoulder_right_id,shoulder_left_id],
+            angle_conf_ids = [[neck_id, shoulder_right_id,shoulder_left_id],
                               [elbow_left_id, shoulder_left_id, hip_left_id],
                               [wrist_left_id, elbow_left_id, shoulder_left_id],
                               [elbow_right_id, shoulder_right_id, hip_right_id],
@@ -775,7 +775,13 @@ class TfPoseEstimator:
         angle2 = np.degrees(np.arctan2(v2[0], v2[1]))
         if angle2 < 0:
             angle2 = 360 + angle2
-        return angle2 - angle1
+
+        angle_diff = angle2 - angle1
+        # if angle_diff < -180:
+        #     angle_diff = -360 - angle_diff
+        # if angle_diff > 180:
+        #     angle_diff = 360 - angle_diff
+        return angle_diff
 
     @staticmethod
     def check_angle_confidence(keypoint_a, keypoint_b, keypoint_c, minPartConf):
